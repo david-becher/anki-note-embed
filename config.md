@@ -1,8 +1,10 @@
 # Note Embed – Configuration
 
 **Syntax:** `![Title|nid1234567890123]` shows note 1234567890123 as a closed box,
-`!+[Title|nid…]` as an open box. `<div class="ne-slot">[Title|nid…]</div>` is
-replaced by the bare content (for cards with their own box design).
+`!+[Title|nid…]` as an open box, `!=[Title|nid…]` as bare content without a box
+(plain text flows into the sentence). `<div class="ne-slot">[Title|nid…]</div>`
+is replaced by the bare content as well and can pass a context (for generated
+cards with their own box design).
 
 - **enabled** (default `true`): Switch the add-on off without uninstalling it.
 
@@ -18,8 +20,8 @@ replaced by the bare content (for cards with their own box design).
   non-empty field is used. A placeholder can name a field directly with
   `data-ne-field="Name"`.
 
-- **generic_syntax** (default `true`): Recognise `![…|nid…]`. Set to `false` to
-  use placeholders only.
+- **generic_syntax** (default `true`): Recognise `![…]`, `!+[…]` and `!=[…]`.
+  Set to `false` to use placeholders only.
 
 - **open_by_default** (default `false`): Let `![…]` boxes start open as well.
 

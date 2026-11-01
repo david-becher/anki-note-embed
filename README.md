@@ -16,7 +16,8 @@ Baustein an Ort und Stelle aufklappen, ohne die Karte zu wechseln.
 | --------------------------------------------- | -------------------------------------------------------- |
 | `![Titel\|nid1234567890123]`                   | Kasten „Titel“, zugeklappt, darin der Inhalt der Notiz    |
 | `!+[Titel\|nid1234567890123]`                  | derselbe Kasten, aufgeklappt                             |
-| `<div class="ne-slot">[Titel\|nid…]</div>`     | nur der Inhalt, ohne eigenen Kasten (für eigenes Design) |
+| `!=[Titel\|nid1234567890123]`                  | nur der Inhalt, ohne Kasten und Titel                    |
+| `<div class="ne-slot">[Titel\|nid…]</div>`     | wie `!=`, mit Kontext-Parametern (für erzeugte Karten)   |
 
 Die Schreibweise ist die Link-Syntax des Add-ons **Anki Note Linker**
 (`[Titel|nid…]`) mit einem vorangestellten `!` – angelehnt an Markdown, wo
@@ -32,7 +33,23 @@ Die Schreibweise ist die Link-Syntax des Add-ons **Anki Note Linker**
   einbettenden Karte steht nur der Verweis.
 
 Die Notiz-ID kopiert man wie gewohnt mit dem Note Linker (Kontextmenü
-„Copy note link“) und setzt davor ein `!`.
+„Copy note link“) und setzt davor `!`, `!+` oder `!=`.
+
+**Wann welche Schreibweise?**
+
+- `![…]` – Vertiefung, die nicht zur Antwort dieser Karte gehört, aber bei
+  Bedarf nachlesbar sein soll.
+- `!+[…]` – Kern der Antwort, der auf einer eigenen Karte gepflegt wird.
+- `!=[…]` – der Inhalt soll aussehen wie selbst geschrieben: ohne Rahmen,
+  ohne Titel, ohne Klick. Reiner Text (z. B. eine einzeilige Definition)
+  fließt in den Satz ein: `Wohnung, d. h. !=[Def. Wohnung|nid…].` ergibt
+  „Wohnung, d. h. räumlich abgeschlossener, privater Lebensbereich.“
+  Enthält die Notiz Absätze oder Listen, beginnt der Inhalt auf einer neuen
+  Zeile. Auch gut in einem eigenen Kasten (`!+` gäbe dort einen Kasten im
+  Kasten).
+- `<div class="ne-slot">` – für Karten, die ein Skript erzeugt: eigenes
+  Kasten-Design und Kontext-Parameter (siehe unten). Von Hand braucht man
+  ihn nicht.
 
 ## Verhalten
 
@@ -89,7 +106,7 @@ auf Englisch in `config.md`):
 | `embed_fields`             | `["Antwort","Back","Rückseite","Answer"]`  | eingebettetes Feld (erstes passendes)                 |
 | `embed_fields_by_notetype` | `{}`                                       | Felder je Notiztyp, vor `embed_fields`                |
 | `fallback_field`           | `1`                                        | Ersatzfeld (Position, 0 = erstes)                     |
-| `generic_syntax`           | `true`                                     | `![…\|nid…]` erkennen                                 |
+| `generic_syntax`           | `true`                                     | `![…]`, `!+[…]`, `!=[…]` erkennen                     |
 | `open_by_default`          | `false`                                    | `![…]`-Kästen aufgeklappt starten                     |
 | `link_style`               | `"icon"`                                   | `icon` · `title` (Titel ist Link) · `none`            |
 | `link_icon`                | `"↗"`                                      | Symbol für den Link                                   |

@@ -4,7 +4,8 @@ Embeds the content of another note right inside a card, as a collapsible box. Th
 <ul>
 <li><code>![Title|nid1234567890123]</code> – closed box with the content of that note</li>
 <li><code>!+[Title|nid1234567890123]</code> – the same box, open</li>
-<li><code>&lt;div class="ne-slot"&gt;[Title|nid…]&lt;/div&gt;</code> – only the content, for cards with their own box design</li>
+<li><code>!=[Title|nid1234567890123]</code> – only the content, no box; a one-line note flows right into your sentence</li>
+<li><code>&lt;div class="ne-slot"&gt;[Title|nid…]&lt;/div&gt;</code> – only the content plus a context parameter, for generated cards with their own box design</li>
 </ul>
 
 <b>Works together with Anki Note Linker</b>

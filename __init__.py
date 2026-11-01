@@ -7,13 +7,16 @@ is filled in while the card is rendered. The embedded note stays a note of
 its own: it is edited in one place, and every card that embeds it always
 shows its current content.
 
-- Generic syntax ``![Title|nid1234567890123]`` (closed box) and
-  ``!+[Title|nid1234567890123]`` (box that starts open). This is the link
-  syntax of the "Anki Note Linker" add-on with a leading ``!``, so in the
-  editor and in the link graph the reference remains an ordinary note link.
+- Generic syntax ``![Title|nid1234567890123]`` (closed box),
+  ``!+[Title|nid1234567890123]`` (box that starts open) and
+  ``!=[Title|nid1234567890123]`` (content only, no box; plain text flows
+  into the surrounding sentence). This is the link syntax of the "Anki Note
+  Linker" add-on with a leading ``!``, so in the editor and in the link
+  graph the reference remains an ordinary note link.
 - Placeholder syntax ``<div class="ne-slot">[Title|nid…]</div>`` for cards
-  that bring their own box design: only the placeholder is replaced by the
-  content, the surrounding markup is left untouched.
+  that are generated with their own box design and pass a context to the
+  embedded note: only the placeholder is replaced by the content, the
+  surrounding markup is left untouched.
 - Works in the reviewer, the card previewer and the card layout screen.
 - Embeds inside embedded notes are expanded too, with a depth limit and
   protection against cycles.
@@ -55,6 +58,11 @@ inserted:
    note ids from the host card down to the current embed is passed along;
    a note that is already part of the chain is shown as a short notice
    instead of being expanded again.
+
+Content inserted without a box (``!=`` and ``<span class="ne-slot">``) is
+wrapped in a ``<span>`` when it contains no block-level markup, so a
+one-line definition reads as part of the sentence it is embedded in;
+otherwise it is wrapped in a ``<div>``.
 
 A placeholder may pass a *context* to the embedded note
 (``data-ne-ctx="…"``). It ends up on the content wrapper as
@@ -190,9 +198,17 @@ LINK_RE = re.compile(r"\[(" + LINK_TITLE + r")\|nid(\d{13})\]", re.S)
 EMBED_RE = re.compile(
     # <div class="ne-slot" …>[Title|nid…]</div>   (also <span>)
     r"(?P<slot><(?P<tag>div|span)\b(?P<attrs>[^>]*\bne-slot\b[^>]*)>(?P<inner>.*?)</(?P=tag)\s*>)"
-    # ![Title|nid…]   and   !+[Title|nid…]
-    r"|(?P<gen>!(?P<plus>\+?)\[(?P<title>" + LINK_TITLE + r")\|nid(?P<nid>\d{13})\])",
+    # ![Title|nid…]   !+[Title|nid…]   !=[Title|nid…]
+    r"|(?P<gen>!(?P<mode>[+=]?)\[(?P<title>" + LINK_TITLE + r")\|nid(?P<nid>\d{13})\])",
     re.S | re.I,
+)
+
+# Markup that cannot live inside a <span>: content containing it is inserted as a block.
+BLOCK_RE = re.compile(
+    r"<(?:div|p|ul|ol|li|dl|dt|dd|table|thead|tbody|tfoot|tr|td|th|h[1-6]|details|summary|"
+    r"section|article|aside|header|footer|nav|blockquote|pre|hr|figure|figcaption|form|fieldset|"
+    r"template|center)\b",
+    re.I,
 )
 
 ATTR_RE = re.compile(r"([\w:.-]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)')")
@@ -217,7 +233,8 @@ def may_contain_embed(text):
     """
     Cheap pre-check, so cards without embeds are not touched at all.
     """
-    return bool(text) and "|nid" in text and ("ne-slot" in text or "![" in text or "!+[" in text)
+    return bool(text) and "|nid" in text and (
+        "ne-slot" in text or "![" in text or "!+[" in text or "!=[" in text)
 
 
 def parse_attrs(source):
@@ -338,11 +355,12 @@ class RenderState:
         return (f'<a class="ne-link" href="#" '
                 f'onclick="pycmd(\'{OPEN_CMD}{nid}\');return false;">{label}</a>')
 
-    def notice(self, kind, label, title, nid):
+    def notice(self, kind, label, title, nid, inline=False):
         icons = {"cycle": "↺", "missing": "⚠", "empty": "∅",
                  "depth": "⋯", "limit": "⋯"}
-        return (f'<div class="ne-note ne-{kind}">{icons.get(kind, "")} '
-                f'{html.escape(label)}: {self.link(title, nid)}</div>')
+        tag = "span" if inline else "div"
+        return (f'<{tag} class="ne-note ne-{kind}">{icons.get(kind, "")} '
+                f'{html.escape(label)}: {self.link(title, nid)}</{tag}>')
 
 
 def pick_field(note, config, wanted=None):
@@ -374,7 +392,7 @@ def pick_field(note, config, wanted=None):
     return None
 
 
-def embedded_content(state, nid, title, depth, chain, ctx, wanted_field=None):
+def embedded_content(state, nid, title, depth, chain, ctx, wanted_field=None, inline=False):
     """
     The prepared and recursively expanded content of note ``nid``.
 
@@ -382,20 +400,23 @@ def embedded_content(state, nid, title, depth, chain, ctx, wanted_field=None):
     """
     config = state.config
 
+    def notice(kind):
+        return state.notice(kind, config[f"label_{kind}"], title, nid, inline), False
+
     if nid in chain:
-        return state.notice("cycle", config["label_cycle"], title, nid), False
+        return notice("cycle")
     if depth >= int(config.get("max_depth", 6)):
-        return state.notice("depth", config["label_depth"], title, nid), False
+        return notice("depth")
     if state.count >= int(config.get("max_embeds_per_card", 200)):
-        return state.notice("limit", config["label_limit"], title, nid), False
+        return notice("limit")
 
     note = state.note(nid)
     if note is None:
-        return state.notice("missing", config["label_missing"], title, nid), False
+        return notice("missing")
 
     field = pick_field(note, config, wanted_field)
     if field is None or not note[field].strip():
-        return state.notice("empty", config["label_empty"], title, nid), False
+        return notice("empty")
 
     state.count += 1
     state.uid += 1
@@ -427,12 +448,17 @@ def lift_styles(state, text):
     return STYLE_RE.sub(take, text)
 
 
-def content_wrapper(state, nid, ctx, body, lazy):
+def is_inline(body):
+    return BLOCK_RE.search(body) is None
+
+
+def content_wrapper(state, nid, ctx, body, lazy, tag="div"):
     ctx_attr = f' data-ne-ctx="{html.escape(ctx, quote=True)}"' if ctx else ""
     if lazy:
         state.lazy_used = True
+        tag = "div"
         body = f'<template class="ne-lazy">{body}</template>'
-    return f'<div class="ne-content" data-ne-nid="{nid}"{ctx_attr}>{body}</div>'
+    return f'<{tag} class="ne-content" data-ne-nid="{nid}"{ctx_attr}>{body}</{tag}>'
 
 
 def expand(state, text, depth=0, chain=(), parent_ctx=""):
@@ -449,19 +475,31 @@ def expand(state, text, depth=0, chain=(), parent_ctx=""):
             title, nid = link.group(1), int(link.group(2))
             attrs = parse_attrs(m.group("attrs"))
             ctx = resolve_context(attrs, parent_ctx)
+            span = m.group("tag").lower() == "span"
             state.used = True
             body, ok = embedded_content(state, nid, title, depth, chain, ctx,
-                                        attrs.get("data-ne-field"))
+                                        attrs.get("data-ne-field"), inline=span)
             if not ok:
                 return body
-            return content_wrapper(state, nid, ctx, body, bool(config.get("lazy_load")))
+            tag = "span" if span and is_inline(body) else "div"
+            return content_wrapper(state, nid, ctx, body,
+                                   bool(config.get("lazy_load")) and tag == "div", tag)
 
         if not config.get("generic_syntax", True):
             return m.group(0)
 
-        title, nid = m.group("title"), int(m.group("nid"))
-        is_open = bool(m.group("plus")) or bool(config.get("open_by_default"))
+        title, nid, mode = m.group("title"), int(m.group("nid")), m.group("mode")
         state.used = True
+
+        if mode == "=":
+            # Content only: no box, no title; plain text flows into the sentence.
+            body, ok = embedded_content(state, nid, title, depth, chain, "", inline=True)
+            if not ok:
+                return body
+            return content_wrapper(state, nid, "", body, False,
+                                   "span" if is_inline(body) else "div")
+
+        is_open = mode == "+" or bool(config.get("open_by_default"))
         body, ok = embedded_content(state, nid, title, depth, chain, "")
         if ok:
             body = content_wrapper(state, nid, "", body,
@@ -503,7 +541,7 @@ def addon_css(config):
         ".ne-open a{font-size:0;text-decoration:none;color:inherit;opacity:.65}"
         ".ne-open a:hover{opacity:1}"
         f'.ne-open a::after{{content:"{icon}";font-size:14px;padding:0 .2em}}'
-        ".ne-content{display:block}"
+        "div.ne-content{display:block}span.ne-content{display:inline}"
         ".ne-note{margin:.3em 0;font-size:.9em;font-style:italic;opacity:.78}"
         "</style>"
     )

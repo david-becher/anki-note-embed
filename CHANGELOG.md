@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] - 2026-11-01
+
+### Added
+- Syntax `!=[Title|nid…]`: inserts the content without box and title, typed in
+  the normal editor (no HTML editor needed).
+- Content without block-level markup is inserted as a `<span>` by `!=` and by
+  `<span class="ne-slot">`, so a one-line note reads as part of the sentence.
+
 ## [1.0.0] - 2026-11-01
 
 ### Added

@@ -118,6 +118,22 @@ def main():
         ids = re.findall(r'\sid="([^"]+)"', html_h)
         check(len(ids) == len(set(ids)), f"ids unique ({sorted(set(ids))})")
 
+        print("!= without box")
+        plain = add(col, "Def", "räumlich abgeschlossener Bereich")
+        lst = add(col, "Liste", "<ol><li>eins</li><li>zwei</li></ol>")
+        s = add(col, "S", f"Wohnung, d. h. !=[Def|nid{plain.id}]. Stufen: !=[Liste|nid{lst.id}]")
+        html_s = answer(col, s)
+        check(f'd. h. <span class="ne-content" data-ne-nid="{plain.id}">räumlich abgeschlossener Bereich</span>.'
+              in html_s, "plain text is inserted inline into the sentence")
+        check(f'<div class="ne-content" data-ne-nid="{lst.id}"><ol>' in html_s, "block content is inserted as a block")
+        check("ne-embed" not in re.sub(r"<style.*?</style>", "", html_s, flags=re.S), "no box, no title")
+        sp = add(col, "SP", f'Wohnung, d. h. <span class="ne-slot">[Def|nid{plain.id}]</span>.')
+        check(f'd. h. <span class="ne-content" data-ne-nid="{plain.id}">' in answer(col, sp), "span placeholder stays inline")
+        loop = add(col, "L", "")
+        loop["Back"] = f"Ich: !=[L|nid{loop.id}]"
+        col.update_note(loop)
+        check('<span class="ne-note ne-cycle">' in answer(col, loop), "inline cycle notice")
+
         print("context map")
         state = ne.RenderState(col, ne.get_config(), use_linker=True)
         out = ne.expand(state, f'<div class="ne-slot" data-ne-ctx="d" data-ne-ctx-map="p=m">[A|nid{a.id}]</div>',
