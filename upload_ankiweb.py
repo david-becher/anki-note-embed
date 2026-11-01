@@ -118,7 +118,22 @@ def main():
           f"({'update id ' + addon_id if is_update else 'NEW listing'}) …")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Prefer the system-installed Google Chrome (channel="chrome") so we
+        # don't need Playwright's bundled Chromium download. Override with
+        # PLAYWRIGHT_CHANNEL (e.g. "msedge", or "" to use bundled Chromium).
+        channel = os.environ.get("PLAYWRIGHT_CHANNEL", "chrome")
+        launch_kwargs = {"headless": True}
+        if channel:
+            launch_kwargs["channel"] = channel
+        try:
+            browser = p.chromium.launch(**launch_kwargs)
+        except Exception as exc:
+            if channel:
+                print(f"Could not launch channel '{channel}' ({exc}); "
+                      f"falling back to bundled Chromium.", file=sys.stderr)
+                browser = p.chromium.launch(headless=True)
+            else:
+                raise
         ctx = browser.new_context()
         page = ctx.new_page()
 
