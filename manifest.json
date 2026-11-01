@@ -1,0 +1,10 @@
+{
+    "name": "Note Embed",
+    "package": "note_embed",
+    "author": "David Becher",
+    "version": "1.0.0",
+    "homepage": "https://github.com/david-becher/anki-note-embed",
+    "ankiweb_id": "",
+    "conflicts": [],
+    "min_point_version": 231000
+}

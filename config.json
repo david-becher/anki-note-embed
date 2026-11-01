@@ -1,0 +1,31 @@
+{
+    "enabled": true,
+    "embed_fields": [
+        "Antwort",
+        "Back",
+        "Rückseite",
+        "Answer"
+    ],
+    "embed_fields_by_notetype": {},
+    "fallback_field": 1,
+    "generic_syntax": true,
+    "open_by_default": false,
+    "link_style": "icon",
+    "link_icon": "↗",
+    "link_mode": "auto",
+    "max_depth": 6,
+    "max_embeds_per_card": 200,
+    "strip_scripts": true,
+    "strip_sound": true,
+    "reveal_cloze": true,
+    "prefix_ids": true,
+    "dedupe_styles": true,
+    "lazy_load": false,
+    "inject_css": true,
+    "label_open": "Notiz öffnen",
+    "label_missing": "Notiz nicht gefunden",
+    "label_empty": "Kein Inhalt zum Einbetten",
+    "label_cycle": "Wird bereits weiter oben eingebettet",
+    "label_depth": "Maximale Einbettungstiefe erreicht",
+    "label_limit": "Zu viele Einbettungen auf dieser Karte"
+}
